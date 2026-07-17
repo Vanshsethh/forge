@@ -1,0 +1,93 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: forge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: forgeroot
+      MYSQL_DATABASE: forge
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: forge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: forge-opa
+    restart: unless-stopped
+    command: ["run", "--server", "--addr=:8181", "/policies"]
+    volumes:
+      - ./policies:/policies
+    ports:
+      - "8181:8181"
+
+  gateway-service:
+    build: ./services/gateway-service
+    container_name: forge-gateway
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opa:
+        condition: service_started
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+      - OPA_URL=http://opa:8181
+      - PORT=4000
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+
+  admin-service:
+    build: ./services/admin-service
+    container_name: forge-admin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - MYSQL_HOST=mysql
+      - REDIS_HOST=redis
+      - PORT=5050
+    ports:
+      - "5050:5050"
+    env_file:
+      - .env
+
+  frontend:
+    build: ./frontend
+    container_name: forge-frontend
+    restart: unless-stopped
+    depends_on:
+      - admin-service
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_ADMIN_API_URL=http://localhost:5050
+
+volumes:
+  mysql_data:
