@@ -20,11 +20,12 @@ async function getAgent(agentId) {
 
 router.post("/action", async (req, res) => {
   const agentId = req.verifiedAgentId; // set by verifyHmac middleware — trusted, not from req.body
-  const { action, amount } = req.body;
+  const { action, amount: requestedAmount } = req.body;
 
-  if (!action || amount === undefined) {
-    return res.status(400).json({ error: "action and amount are required" });
+  if (!action || typeof requestedAmount !== "number" || !Number.isFinite(requestedAmount) || requestedAmount < 0) {
+    return res.status(400).json({ error: "action and a non-negative numeric amount are required" });
   }
+  const amount = requestedAmount;
 
   // Step 1 — fail-closed dependency wrapper. Any thrown error below this point
   // becomes a DENY, logged as a system-fault denial (CLAUDE.md §4, §8).

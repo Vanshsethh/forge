@@ -8,6 +8,24 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const JWT_EXPIRY = "15m"; // matches LOGPULSE's short-lived access token pattern
 
+// Used only when explicitly configured by the local Docker Compose setup.
+// Do not set these variables in a deployed environment.
+async function ensureDemoOperator() {
+  const email = process.env.DEMO_OPERATOR_EMAIL;
+  const password = process.env.DEMO_OPERATOR_PASSWORD;
+  if (!email || !password) return;
+
+  const [existing] = await pool.query("SELECT id FROM operators WHERE email = ?", [email]);
+  if (existing.length > 0) return;
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await pool.query(
+    "INSERT INTO operators (id, email, password_hash) VALUES (?, ?, ?)",
+    [randomUUID(), email, passwordHash]
+  );
+  console.log(`created local demo operator: ${email}`);
+}
+
 router.post("/signup", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -55,3 +73,4 @@ router.post("/login", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureDemoOperator = ensureDemoOperator;

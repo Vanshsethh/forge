@@ -26,7 +26,8 @@ router.get("/audit", async (req, res) => {
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
   const [rows] = await pool.query(
-    `SELECT id, actor_type, agent_id, actor_id, action, amount, verdict, reason, context, created_at
+    `SELECT id, actor_type, agent_id, actor_id, action, amount, verdict, reason, context,
+            prev_hash, row_hash, created_at
      FROM audit_log ${whereClause}
      ORDER BY id DESC
      LIMIT ? OFFSET ?`,

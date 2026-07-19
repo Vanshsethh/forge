@@ -73,6 +73,9 @@ services:
       - MYSQL_HOST=mysql
       - REDIS_HOST=redis
       - PORT=5050
+      - FRONTEND_ORIGIN=http://localhost:3000,http://localhost:4173
+      - DEMO_OPERATOR_EMAIL=operator@forge.local
+      - DEMO_OPERATOR_PASSWORD=forgepassword123
     ports:
       - "5050:5050"
     env_file:
