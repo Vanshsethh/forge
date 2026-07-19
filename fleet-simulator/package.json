@@ -1,0 +1,13 @@
+{
+  "name": "fleet-simulator",
+  "version": "1.0.0",
+  "description": "FORGE Fleet Simulator",
+  "main": "simulate.js",
+  "scripts": {
+    "start": "node simulate.js"
+  },
+  "dependencies": {
+    "axios": "^1.18.1",
+    "dotenv": "^17.4.2"
+  }
+}

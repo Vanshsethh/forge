@@ -1,11 +1,21 @@
 const express = require("express");
 const { requireAuth } = require("../middleware/requireAuth");
-const { setFleetKill, setAgentRevoked } = require("../redis-client");
+const { setFleetKill, setAgentRevoked, isFleetKilled } = require("../redis-client");
 const { appendAuditEntry } = require("../ledger");
 const pool = require("../db");
 
 const router = express.Router();
 router.use(requireAuth); // every route below requires a valid operator JWT
+
+// Get current control plane status (fleet kill switch state).
+router.get("/status", async (req, res) => {
+  try {
+    const globalKillActive = await isFleetKilled();
+    return res.json({ globalKillActive });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // Fleet-wide emergency stop — halts every agent instantly.
 router.post("/fleet/kill", async (req, res) => {

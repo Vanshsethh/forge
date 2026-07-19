@@ -3,11 +3,29 @@ const crypto = require("crypto");
 const { randomUUID } = require("crypto");
 const { requireAuth } = require("../middleware/requireAuth");
 const pool = require("../db");
+const { redis } = require("../redis-client");
 
 const router = express.Router();
 router.use(requireAuth);
 
-// List all agents with their spend caps and current status.
+// Helper to enrich agent rows with live Redis spend counters.
+async function enrichAgentWithSpend(agent) {
+  const hourlyKey = `spend:${agent.id}:3600`;
+  const dailyKey = `spend:${agent.id}:86400`;
+  
+  const [hourlyVal, dailyVal] = await Promise.all([
+    redis.get(hourlyKey),
+    redis.get(dailyKey)
+  ]);
+  
+  return {
+    ...agent,
+    current_hourly_spend: hourlyVal ? parseFloat(hourlyVal) : 0,
+    current_daily_spend: dailyVal ? parseFloat(dailyVal) : 0
+  };
+}
+
+// List all agents with their spend caps, current status, and live Redis spend.
 router.get("/agents", async (req, res) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.name, a.agent_type, a.status, a.created_at,
@@ -16,11 +34,12 @@ router.get("/agents", async (req, res) => {
      JOIN spend_caps s ON a.id = s.agent_id
      ORDER BY a.created_at DESC`
   );
-  return res.json({ agents: rows });
+  
+  const enriched = await Promise.all(rows.map(enrichAgentWithSpend));
+  return res.json({ agents: enriched });
 });
 
-// Single agent detail — secret is never returned here, even to an operator,
-// since it should only ever be shown once, at creation time.
+// Single agent detail with live spend.
 router.get("/agents/:id", async (req, res) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.name, a.agent_type, a.status, a.created_at,
@@ -33,7 +52,9 @@ router.get("/agents/:id", async (req, res) => {
   if (rows.length === 0) {
     return res.status(404).json({ error: "agent not found" });
   }
-  return res.json({ agent: rows[0] });
+  
+  const enriched = await enrichAgentWithSpend(rows[0]);
+  return res.json({ agent: enriched });
 });
 
 // Create a new agent. Generates a random HMAC secret server-side — the
