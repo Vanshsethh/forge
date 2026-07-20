@@ -8,9 +8,11 @@ const statusFor = (agent) => agent.status === "revoked" ? "revoked" : Number(age
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("forge_token") || "");
-  const [email, setEmail] = useState("operator@forge.local");
-  const [password, setPassword] = useState("forgepassword123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [tab, setTab] = useState("fleet");
   const [agents, setAgents] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -29,7 +31,8 @@ export default function App() {
   }, [api, token]);
   useEffect(() => { refresh().catch(() => setError("Could not reach the control plane.")); }, [refresh]);
   useEffect(() => { if (!token) return; const timer = setInterval(() => refresh().catch(() => {}), 5000); return () => clearInterval(timer); }, [refresh, token]);
-  const signIn = async (event) => { event.preventDefault(); setError(""); try { const { data } = await api.post("/auth/login", { email, password }); localStorage.setItem("forge_token", data.token); setToken(data.token); } catch (err) { setError(err.response?.data?.error || "Authentication failed"); } };
+  const signIn = async (event) => { event.preventDefault(); setError(""); setSuccess(""); try { const { data } = await api.post("/auth/login", { email, password }); localStorage.setItem("forge_token", data.token); setToken(data.token); } catch (err) { setError(err.response?.data?.error || "Authentication failed"); } };
+  const signUp = async (event) => { event.preventDefault(); setError(""); setSuccess(""); if (password.length < 6) { setError("Password must be at least 6 characters"); return; } try { await api.post("/auth/signup", { email, password }); setSuccess("Account created! You can now sign in."); setIsSignUp(false); setPassword(""); } catch (err) { setError(err.response?.data?.error || "Sign up failed"); } };
   const toggleFleet = async () => { await api.post(fleetKilled ? "/fleet/resume" : "/fleet/kill"); refresh(); };
   const toggleAgent = async () => {
     const nextStatus = selected.status === "revoked" ? "active" : "revoked";
@@ -41,7 +44,7 @@ export default function App() {
   const logout = () => { localStorage.removeItem("forge_token"); setToken(""); setAgents([]); setLogs([]); setSelected(null); };
   const exportCsv = () => { const rows = filteredAgents.map(a => `${a.name},${a.agent_type},${statusFor(a)},${a.current_daily_spend},${a.daily_cap}`).join("\n"); const url = URL.createObjectURL(new Blob(["Agent,Type,Status,Spend,Cap\n" + rows], { type: "text/csv" })); const link = document.createElement("a"); link.href = url; link.download = "forge-agent-fleet.csv"; link.click(); URL.revokeObjectURL(url); };
 
-  if (!token) return <main className="forge-shell"><div className="forge-grid"><form className="panel login" onSubmit={signIn}><div className="brand"><i className="brand-mark" /> FORGE</div><h1>Operator access</h1><p className="technical">Sign in to the governance control plane.</p>{error && <p className="verdict deny">{error}</p>}<label className="technical">Email<input value={email} onChange={e => setEmail(e.target.value)} type="email" /></label><label className="technical">Password<input value={password} onChange={e => setPassword(e.target.value)} type="password" /></label><button className="primary-button">Sign in</button></form></div></main>;
+  if (!token) return <main className="forge-shell"><div className="forge-grid"><form className="panel login" onSubmit={isSignUp ? signUp : signIn}><div className="brand"><i className="brand-mark" /> FORGE</div><h1>{isSignUp ? "Create account" : "Operator access"}</h1><p className="technical">{isSignUp ? "Register a new operator account." : "Sign in to the governance control plane."}</p>{error && <p className="verdict deny">{error}</p>}{success && <p className="verdict allow">{success}</p>}<label className="technical">Email<input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" required /></label><label className="technical">Password<input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Min 6 characters" required minLength={6} /></label><button className="primary-button">{isSignUp ? "Create account" : "Sign in"}</button><p className="auth-toggle technical" style={{ marginTop: 16, textAlign: "center", cursor: "pointer" }}>{isSignUp ? <>Already have an account? <span className="auth-link" onClick={() => { setIsSignUp(false); setError(""); setSuccess(""); }}>Sign in</span></> : <>Don't have an account? <span className="auth-link" onClick={() => { setIsSignUp(true); setError(""); setSuccess(""); }}>Create one</span></>}</p></form></div></main>;
 
   const allowed = logs.filter(l => l.verdict === "allow").length;
   const allowRate = logs.length ? allowed / logs.length * 100 : 0;

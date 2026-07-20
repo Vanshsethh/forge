@@ -97,4 +97,9 @@ button { cursor: pointer; }
 .login label.technical { display: block; margin-top: 18px; color: #aaa39d; font-size: 11px; }
 .login input { display: block; width: 100%; margin-top: 9px; padding: 13px 14px; border: 1px solid #3b3733; border-radius: 7px; background: #11100f; color: #ece7df; font-size: 15px; }
 .login .primary-button { width: 100%; margin-top: 28px; padding: 14px; font-size: 13px; }
+.auth-toggle { color: #827c76; font-size: 12px !important; }
+.auth-link { color: #d5cfc7; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; transition: color .15s; }
+.auth-link:hover { color: #f0ece5; }
+.login .verdict.allow { display: block; margin-bottom: 8px; padding: 10px 14px; border-radius: 8px; font-size: 11px; text-align: center; }
+.login .verdict.deny { display: block; margin-bottom: 8px; padding: 10px 14px; border-radius: 8px; font-size: 11px; text-align: center; }
 @media (max-width: 850px) { .forge-grid { padding: 20px; }.forge-header { grid-template-columns: 1fr auto; }.top-nav { grid-column: 1/-1; grid-row: 2; overflow: auto; }.stat-grid,.detail-grid { grid-template-columns: 1fr; }.fleet-table th:nth-child(5),.fleet-table td:nth-child(5),.fleet-table th:nth-child(4),.fleet-table td:nth-child(4) { display: none; }.footer-strip { grid-template-columns: 1fr; }.footer-strip span:last-child { justify-self: start; } }
