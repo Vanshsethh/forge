@@ -5,6 +5,8 @@ const { requireAuth } = require("../middleware/requireAuth");
 const pool = require("../db");
 const { redis } = require("../redis-client");
 
+const { validateCreateAgent, validateAgentId, checkValidation } = require("../middleware/validateAgent");
+
 const router = express.Router();
 router.use(requireAuth);
 
@@ -40,7 +42,7 @@ router.get("/agents", async (req, res) => {
 });
 
 // Single agent detail with live spend.
-router.get("/agents/:id", async (req, res) => {
+router.get("/agents/:id", validateAgentId, checkValidation, async (req, res) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.name, a.agent_type, a.status, a.created_at,
             s.per_txn_cap, s.hourly_cap, s.daily_cap
@@ -60,7 +62,7 @@ router.get("/agents/:id", async (req, res) => {
 // Create a new agent. Generates a random HMAC secret server-side — the
 // operator never chooses it, and it's returned exactly once in this response.
 // If it's lost, the only recovery path is issuing a new one (out of scope for v1).
-router.post("/agents", async (req, res) => {
+router.post("/agents", validateCreateAgent, checkValidation, async (req, res) => {
   const { name, agentType, perTxnCap, hourlyCap, dailyCap } = req.body;
 
   if (!name || !agentType || !perTxnCap || !hourlyCap || !dailyCap) {

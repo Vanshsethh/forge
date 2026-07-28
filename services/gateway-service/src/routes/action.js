@@ -18,7 +18,9 @@ async function getAgent(agentId) {
   return rows[0] || null;
 }
 
-router.post("/action", async (req, res) => {
+const { validateAction, checkValidation } = require("../middleware/validateAction");
+
+router.post("/action", validateAction, checkValidation, async (req, res) => {
   const agentId = req.verifiedAgentId; // set by verifyHmac middleware — trusted, not from req.body
   const { action, amount: requestedAmount } = req.body;
 
