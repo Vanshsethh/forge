@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files (secrets)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Allow .env.example templates to be tracked
+!.env.example
+!**/.env.example
+
+# Editor / IDE
+.vscode/
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Build outputs
+dist/
+build/
